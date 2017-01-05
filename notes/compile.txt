@@ -1,2 +1,5 @@
 # Compile module, specifying output directory
-gfortran -o bin/rte_utils.o -J bin -c src/rte_utils.f90
+gfortran -o include/rte_utils.o -J include -c src/rte_utils.f90
+
+# Compile program, specifying module fdirectory
+gfortran -o include/test_interp.o -c src/test_interp.f90 -I include

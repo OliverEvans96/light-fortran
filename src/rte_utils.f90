@@ -1,11 +1,26 @@
 ! File Name: rte_utils.f90
 ! Description: Linearly interpolate 1D data at specified point
 ! Created: Wed Jan 04, 2017 | 06:24pm EST
-! Last Modified: Thu Jan 05, 2017 | 10:08am EST
+! Last Modified: Thu Jan 05, 2017 | 02:56pm EST
 ! Author: Oliver Evans <oge1@zips.uakron.edu>
+
+! This program is free software: you can redistribute it and/or modify
+! it under the terms of the GNU General Public License as published by
+! the Free Software Foundation, either version 3 of the License, or
+! (at your option) any later version.
+
+! This program is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU General Public License for more details.
+
+! You should have received a copy of the GNU General Public License
+! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module rte_utils
     contains
+
+    ! Interpolate single point from 1D data
     function interp(x0,xx,yy,nn)
         implicit none
 
@@ -20,7 +35,7 @@ module rte_utils
 
         ! OUTPUT:
         ! interp - interpolated y value
-        double precision, intent(out) :: interp
+        double precision interp
 
         ! BODY:
 
@@ -32,9 +47,13 @@ module rte_utils
         ! Determine ii
         do ii = 1, nn
             if (xx(ii) > x0) then
+                ! We've now gone one index too far.
                 exit
             end if
         end do
+
+        ! Subtract since we went one index too far
+        ii = ii - 1
 
         ! Calculate slope
         mm = (yy(ii+1) - yy(ii)) / (xx(ii+1) - xx(ii))
@@ -43,33 +62,86 @@ module rte_utils
         interp = yy(ii) + mm * (x0 - xx(ii))
     end function interp
 
+    ! Read 2D array from file
     function read_array(filename,fmtstr,nn,mm)
         ! INPUTS:
         ! filename - path to file to be read
-        ! fmtstr - data format
-        character(len=50), intent(in) :: filename, fmtstr
+        ! fmtstr - input format (no parentheses, don't specify columns)
+        ! e.g. 'E10.2', not '(2E10.2)'
+        character(len=*), intent(in) :: filename, fmtstr
         ! nn - Number of data rows in file
         ! mm - number of data columns in file
         integer, intent(in) :: nn, mm
 
         ! OUTPUT:
-        double precision, dimension(nn,mm), intent(out) :: read_array
+        double precision, dimension(nn,mm) :: read_array
         
         ! BODY:
 
         ! Row counter
         integer ii
-
         ! File unit number
-        character, parameter :: un = 10
+        integer, parameter :: un = 10
+        ! Final format to use
+        character(len=256) finfmt
+
+        ! Generate final format string
+        write(finfmt,'(A,I4,A,A)') '(', mm, fmtstr, ')'
+
+        write(*,*) 'Reading data from "', trim(filename), '"'
 
         ! Open file
-        open(unit=un, file=filename, status='old', form='formatted')
+        open(unit=un, file=trim(filename), status='old', form='formatted')
 
         ! Loop through lines
         do ii = 1, nn
             ! Read one row at a time
-            read(unit=un, fmt=fmtstr) read_array(ii,:)
+            read(unit=un, fmt=finfmt) read_array(ii,:)
         end do
+
+        ! Close file
+        close(unit=un)
+
     end function read_array
+
+    ! Print 2D array to stdout
+    subroutine print_array(arr,nn,mm,fmtstr)
+        ! INPUTS:
+        ! arr - array to print
+        double precision, dimension (nn,mm), intent(in) :: arr
+        ! nn - number of data rows in file
+        ! nn - number of data columns in file
+        integer, intent(in) :: nn, mm
+        ! fmtstr - output format (no parentheses, don't specify columns)
+        ! e.g. 'E10.2', not '(2E10.2)'
+        character(len=*), optional :: fmtstr
+        
+        ! NO OUTPUTS
+
+        ! BODY
+        
+        ! Row counter
+        integer ii
+        ! Final format to use
+        character(len=256) finfmt
+
+        ! Determine string format
+        if(.not. present(fmtstr)) then
+            fmtstr = 'E10.2'
+        end if
+
+        ! Generate final format string
+        write(finfmt,'(A,I4,A,A)') '(', mm, fmtstr, ')'
+
+        ! Loop through rows
+        do ii = 1, nn
+            ! Print one row at a time
+            write(*,finfmt) arr(ii,:) 
+        end do
+
+        ! Print blank line after
+        write(*,*) ' '
+
+    end subroutine print_array
+
 end module
