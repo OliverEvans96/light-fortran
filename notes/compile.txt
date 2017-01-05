@@ -1,0 +1,2 @@
+# Compile module, specifying output directory
+gfortran -o bin/rte_utils.o -J bin -c src/rte_utils.f90
