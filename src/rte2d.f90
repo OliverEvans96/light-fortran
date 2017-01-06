@@ -1,7 +1,7 @@
 ! File Name: rte2d.f90
 ! Description: Subprograms specific to 2D RTE
 ! Created: Thu Jan 05, 2017 | 06:30pm EST
-! Last Modified: Fri Jan 06, 2017 | 10:55am EST
+! Last Modified: Fri Jan 06, 2017 | 11:19am EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -30,6 +30,8 @@ contains
 ! Calculate index of beta array which corresponds to beta(phi(ll),phi(lp))
 ! For use in VSF integration to calculate scattering
 function diff_ind(ll,lp,lmax)
+    implicit none
+
     ! INPUTS:
     ! ll, lp - two angular indices
     ! lmax - total number of angles
