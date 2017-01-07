@@ -13,7 +13,7 @@
 #########
 
 # Project directories
-BASE=/home/oliver/academic/research/kelp/fortran
+BASE=.
 BIN=$(BASE)/bin
 SRC=$(BASE)/src
 INC=$(BASE)/include
