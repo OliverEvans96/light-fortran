@@ -1,0 +1,5 @@
+# Exclude files in this directory from the repository
+*
+
+# But remember this file to keep the directory
+!.gitignore

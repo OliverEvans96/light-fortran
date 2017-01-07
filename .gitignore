@@ -1,3 +1,2 @@
-include/*
-bin/*
+# Ignore temporary vim files
 .*.swp
