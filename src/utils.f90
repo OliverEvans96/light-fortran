@@ -1,7 +1,7 @@
-! File Name: rte_utils.f90
+! File Name: utils.f90
 ! Description: General utilities which might be useful in other settings
 ! Created: Wed Jan 04, 2017 | 06:24pm EST
-! Last Modified: Fri Jan 06, 2017 | 10:55am EST
+! Last Modified: Fri Jan 06, 2017 | 07:22pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -25,8 +25,60 @@
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 
 ! General utilities which might be useful in other settings
-module rte_utils
+module utils
+
+! Constants
+double precision, parameter :: pi = 4.D0 * datan(1.D0)
+
 contains
+
+! Determine array size from min, max and step
+! If alignment is off, array will overstep the maximum
+
+! Determine array size from min, max and step
+! If alignment is off, array will overstep the maximum
+function bnd2max(xmin,xmax,dx)
+    ! INPUTS:
+    ! xmin - minimum x value in array
+    ! xmax - maximum x value in array (inclusive)
+    ! dx - step size
+    double precision, intent(in) :: xmin, xmax, dx
+    
+    ! OUTPUT:
+    ! step2max - maximum index of array
+    integer step2max
+
+    ! Calculate array size
+    step2max = int(ceiling((xmax-xmin)/dx))
+end function
+
+! Create array from bounds and number of elements
+function bnd2arr(xmin,xmax,imax)
+    ! INPUTS:
+    ! xmin - minimum x value in array
+    ! xmax - maximum x value in array (inclusive)
+    double precision, intent(in) :: xmin, xmax
+    ! imax - number of elements in array
+    integer imax
+    
+    ! OUTPUT:
+    ! bnd2arr - array to generate
+    double precision, dimension(imax) :: bnd2arr
+
+    ! Counter
+    integer ii
+    ! Number of elements
+
+    ! Calculate array size
+    !imax = int(ceiling((xmax-xmin)/dx))
+
+    ! Generate array
+    do ii = 1, imax
+        bnd2arr(ii) = xmin + ii * dx
+    end do
+
+end function
+
 
 ! Interpolate single point from 1D data
 function interp(x0,xx,yy,nn)
@@ -71,7 +123,7 @@ function interp(x0,xx,yy,nn)
 end function
 
 ! Read 2D array from file
-function read_array(filename,fmtstr,nn,mm)
+function read_array(filename,fmtstr,nn,mm,skiplines)
     implicit none
 
     ! INPUTS:
@@ -82,32 +134,53 @@ function read_array(filename,fmtstr,nn,mm)
     ! nn - Number of data rows in file
     ! mm - number of data columns in file
     integer, intent(in) :: nn, mm
+    ! skiplines - optional - number of lines to skip from header
+    integer, optional :: skiplines
 
     ! OUTPUT:
     double precision, dimension(nn,mm) :: read_array
     
     ! BODY:
 
-    ! Row counter
-    integer ii
+    ! Row,column counters
+    integer ii, jj
     ! File unit number
     integer, parameter :: un = 10
     ! Final format to use
     character(len=256) finfmt
+    ! Format string for debugging
+    character(len=256) dbgfmt
 
     ! Generate final format string
-    write(finfmt,'(A,I4,A,A)') '(', mm, fmtstr, ')'
+    write(finfmt,'(A,I1,A,A)') '(', mm, fmtstr, ')'
+
+    ! Generate debug format string
+    write(dbgfmt,'(A,I1,A,A)') '(I3, A, ', mm, fmtstr, ', A)'
 
     ! Print message
     write(*,*) 'Reading data from "', trim(filename), '"'
+    write(*,*) 'Using format "', trim(finfmt), '"'
 
     ! Open file
     open(unit=un, file=trim(filename), status='old', form='formatted')
 
+    ! Skip lines if desired
+    if(present(skiplines)) then
+        do ii = 1, skiplines
+            ! Read without variable ignores the line
+            read(un,*)
+        end do
+    end if
+
     ! Loop through lines
-    do ii = 1, nn
+    do ii = 1, nn - skiplines
         ! Read one row at a time
-        read(unit=un, fmt=finfmt) read_array(ii,:)
+        !write(*,*) 'Read format: "', trim(finfmt), '"'
+        !read(unit=un, fmt=trim(finfmt)) read_array(ii,:)
+        read(unit=un, fmt=trim(finfmt)) (read_array(ii,jj),jj=1,mm)
+        !write(*,*) 'Write format: "', trim(dbgfmt), '"'
+        write(*,fmt=trim(dbgfmt)) ii + skiplines, ': "', read_array(ii,:), '"'
+        !write(*,*) 'Done'
     end do
 
     ! Close file

@@ -1,5 +1,3 @@
-include
 include/*
-bin
 bin/*
 .*.swp

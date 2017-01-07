@@ -1,7 +1,7 @@
 ! File Name: rte2d.f90
 ! Description: Subprograms specific to 2D RTE
 ! Created: Thu Jan 05, 2017 | 06:30pm EST
-! Last Modified: Fri Jan 06, 2017 | 11:19am EST
+! Last Modified: Fri Jan 06, 2017 | 04:33pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -47,39 +47,47 @@ function diff_ind(ll,lp,lmax)
 end function
 
 ! Checkerboard successive over-relaxation for the 2D RTE
-subroutine sor(rad, aa, bb, beta, dx, dy, dphi, imax, jmax, lmax, &
+subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                 tol, maxiter, omega)
+    use utils
     implicit none
 
     ! INPUTS:
     ! rad - radiance array to be updated.
     ! should be already set with some initial guess
     double precision, dimension(imax,jmax,lmax) :: rad
-    ! dx, dy, dphi - Grid size in each dimension
+    ! imax, jmax, lmax - array size in x, y, phi dimensions
+    integer, intent(in) :: imax, jmax, lmax
     ! aa - absorption coefficient over space
     ! bb - scattering coefficient over space
     double precision, dimension(imax,jmax), intent(in) :: aa, bb
     ! beta - volume scattering function evenly spaced array
     ! beta_1 = vsf(dphi); vsf(0) not meaningful
     double precision, dimension(lmax-1), intent(in) :: beta
-    double precision, intent(in) :: dx, dy, dphi
-    ! i,j,k - Array size in each dimension (x, y, phi respectively)
-    integer, intent(in) :: imax, jmax, lmax
     ! tol - error tolerance which determines when to stop iterating
     double precision, optional :: tol
     ! maxiter - maximum number of SOR iterations
     integer, optional :: maxiter
     ! omega - SOR weighting term. Should be between 1 and 2
     double precision, optional :: omega
+
+    ! Step size in each dimension
+    double precision dx, dy, dphi
     
     ! OUTPUTS:
     ! rad will be updated
 
     ! BODY:
 
+    ! Pi (3.14...)
+    double precision, parameter :: pi = 4.D0 * datan(1.D0)
+
     ! xx, yy, phi, phi' variables and indices
     double precision xx, yy, phi, phi_p
     integer ii, jj, ll, lp
+
+    ! Array size in each dimension (x, y, phi respectively)
+    !integer imax, jmax, lmax
 
     ! Iteration counter
     integer iter
@@ -102,6 +110,11 @@ subroutine sor(rad, aa, bb, beta, dx, dy, dphi, imax, jmax, lmax, &
 
     ! Gauss-Seidel term
     double precision gs_term
+
+    ! Calculate step size
+    dx = 1.D0 / imax
+    dy = 1.D0 / jmax
+    dphi = 1.D0 / lmax
 
     ! Calculate attenuation coefficient
     cc = aa + bb

@@ -31,18 +31,25 @@ BFLAGS=-J$(INC) -I$(INC)
 # Executables #
 ###############
 
-all: test_interp test_rte2d
+all: test_interp test_rte2d test_vsf
 
 test_interp: utils.o
 	 $(FC) $(BFLAGS) $(SRC)/test_interp.f90 $(INC)/utils.o -o $(BIN)/test_interp 
+
 test_rte2d: rte2d.o
+
+test_vsf: rte_core.o
+	 $(FC) $(BFLAGS) -g -fcheck=all -Wall $(SRC)/test_vsf.f90 $(INC)/rte_core.o $(INC)/utils.o -o $(BIN)/test_vsf 
 
 ################
 # Object files #
 ################
 
-rte2d.o:
+rte2d.o: rte_core.o
 	$(FC) $(OFLAGS) $(SRC)/rte2d.f90 -o $(INC)/rte2d.o
+
+rte_core.o: utils.o
+	$(FC) $(OFLAGS) $(SRC)/rte_core.f90 -o $(INC)/rte_core.o
 
 utils.o:
 	$(FC) $(OFLAGS) $(SRC)/utils.f90 -o $(INC)/utils.o

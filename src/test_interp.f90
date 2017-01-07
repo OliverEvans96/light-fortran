@@ -1,16 +1,16 @@
 ! File Name: test_interp.f90
 ! Description: Test interp.f90
 ! Created: Wed Jan 04, 2017 | 06:47pm EST
-! Last Modified: Fri Jan 06, 2017 | 11:19am EST
+! Last Modified: Fri Jan 06, 2017 | 04:17pm EST
 ! Author: Oliver Evans <oge1@zips.uakron.edu>
 
 program test_interp
+    use utils
     implicit none
-    use rte_utils
 
     ! File to read
     character(len=256) filename
-    ! Array dimentsions
+    ! Array dimensions
     integer, parameter :: nn=12, mm=2
     ! Array variable
     double precision, dimension(nn,mm) :: arr
