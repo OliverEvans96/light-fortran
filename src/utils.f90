@@ -1,7 +1,7 @@
 ! File Name: utils.f90
 ! Description: General utilities which might be useful in other settings
 ! Created: Wed Jan 04, 2017 | 06:24pm EST
-! Last Modified: Fri Jan 06, 2017 | 07:22pm EST
+! Last Modified: Sun Jan 08, 2017 | 12:33am EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -32,12 +32,68 @@ double precision, parameter :: pi = 4.D0 * datan(1.D0)
 
 contains
 
-! Determine array size from min, max and step
-! If alignment is off, array will overstep the maximum
+! Determine base directory relative to current directory
+! by looking for Makefile, which is in the base dir
+! Assuming that this is executed from within the git repo.
+function getbasedir()
+    implicit none
+
+    ! Number of paths to check
+    integer, parameter :: numpaths = 3
+    ! Maximum length of path names
+    integer, parameter :: maxlength = numpaths * 2 - 1
+    ! Paths to check for Makefile
+    character(len=maxlength), parameter, dimension(numpaths) :: check_paths &
+            = (/ '.    ', '..   ', '../..' /)
+    ! Temporary path string
+    character(len=maxlength) tmp_path
+    ! Whether Makefile has been found yet
+    logical found
+    ! Path counter
+    integer ii
+    ! Lengths of paths
+    integer, dimension(numpaths) ::  pathlengths
+
+    ! OUTPUT:
+    ! getbasedir - relative path to base directory
+    ! Will either return '.', '..', or '../..'
+    character(len=maxlength) getbasedir
+
+
+    ! Determine length of each path
+    pathlengths(1) = 1
+    do ii = 2, numpaths
+        pathlengths(ii) = 2 + 3 * (ii - 2)
+    end do
+
+    ! Loop through paths
+    do ii = 1, numpaths
+        ! Determine this path
+        tmp_path = check_paths(ii)
+
+        ! Check whether Makefile is in this directory
+        write(*,*) 'Checking "', tmp_path(1:pathlengths(ii)), '"'
+        inquire(file=tmp_path(1:pathlengths(ii)) // '/Makefile', exist=found)
+        ! If so, stop. Otherwise, keep looking.
+        if(found) then
+            getbasedir = tmp_path(1:pathlengths(ii))
+            exit
+        end if
+    end do
+
+    ! If it hasn't been found, then this script was probably called
+    ! from outside of the repository.
+    if(.not. found) then
+        write(*,*) 'BASE DIR NOT FOUND.'
+    end if
+
+end function
 
 ! Determine array size from min, max and step
 ! If alignment is off, array will overstep the maximum
 function bnd2max(xmin,xmax,dx)
+    implicit none
+
     ! INPUTS:
     ! xmin - minimum x value in array
     ! xmax - maximum x value in array (inclusive)
@@ -46,14 +102,16 @@ function bnd2max(xmin,xmax,dx)
     
     ! OUTPUT:
     ! step2max - maximum index of array
-    integer step2max
+    integer bnd2max
 
     ! Calculate array size
-    step2max = int(ceiling((xmax-xmin)/dx))
+    bnd2max = int(ceiling((xmax-xmin)/dx))
 end function
 
 ! Create array from bounds and number of elements
 function bnd2arr(xmin,xmax,imax)
+    implicit none
+    
     ! INPUTS:
     ! xmin - minimum x value in array
     ! xmax - maximum x value in array (inclusive)
@@ -65,12 +123,15 @@ function bnd2arr(xmin,xmax,imax)
     ! bnd2arr - array to generate
     double precision, dimension(imax) :: bnd2arr
 
+    ! BODY: 
+
     ! Counter
     integer ii
-    ! Number of elements
+    ! Step size
+    double precision dx
 
-    ! Calculate array size
-    !imax = int(ceiling((xmax-xmin)/dx))
+    ! Calculate step size
+    dx = (xmax - xmin) / imax
 
     ! Generate array
     do ii = 1, imax
