@@ -1,7 +1,7 @@
 ! File Name: rte2d.f90
 ! Description: Subprograms specific to 2D RTE
 ! Created: Thu Jan 05, 2017 | 06:30pm EST
-! Last Modified: Fri Jan 06, 2017 | 04:33pm EST
+! Last Modified: Sat Jan 07, 2017 | 06:52pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -78,9 +78,6 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
     ! rad will be updated
 
     ! BODY:
-
-    ! Pi (3.14...)
-    double precision, parameter :: pi = 4.D0 * datan(1.D0)
 
     ! xx, yy, phi, phi' variables and indices
     double precision xx, yy, phi, phi_p
