@@ -34,12 +34,12 @@ BFLAGS=-J$(INC) -I$(INC)
 all: test_interp test_rte2d test_vsf
 
 test_interp: utils.o
-	 $(FC) $(BFLAGS) $(SRC)/test_interp.f90 $(INC)/utils.o -o $(BIN)/test_interp 
+	 $(FC) $(BFLAGS) $(SRC)/test_interp.f90 $(INC)/utils.o -o $(BIN)/test_interp
 
 test_rte2d: rte2d.o
 
-test_vsf: rte_core.o
-	 $(FC) $(BFLAGS) -g -fcheck=all -Wall $(SRC)/test_vsf.f90 $(INC)/rte_core.o $(INC)/utils.o -o $(BIN)/test_vsf 
+test_vsf: rte_core.o utils.o
+	 $(FC) $(BFLAGS) $(SRC)/test_vsf.f90 $(INC)/rte_core.o $(INC)/utils.o -o $(BIN)/test_vsf
 
 ################
 # Object files #

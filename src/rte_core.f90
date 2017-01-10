@@ -1,7 +1,7 @@
 ! File Name: rte_core.f90
 ! Description: Subprograms applicable to RTE in general
 ! Created: Fri Jan 06, 2017 | 10:54am EST
-! Last Modified: Fri Jan 06, 2017 | 06:06pm EST
+! Last Modified: Tue Jan 10, 2017 | 11:51am EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -31,7 +31,7 @@ use utils
 contains
 
 ! Calculate evenly spaced VSF array (beta)
-function calc_vsf_arr(vsf_file,data_rows,lmax,fmtstr,skiplines)
+function calc_vsf_arr(vsf_file,data_rows,lmax,fmtstr_in,skiplines_in)
     !use utils
     implicit none
 
@@ -43,32 +43,38 @@ function calc_vsf_arr(vsf_file,data_rows,lmax,fmtstr,skiplines)
     integer, intent(in) :: data_rows, lmax
     ! fmtstr - optional - data format (no parentheses, don't specify columns)
     ! e.g. 'E10.2', not '(2E10.2)'
-    character(len=*), optional :: fmtstr
+    character(len=*), optional :: fmtstr_in
+    character(len=20) :: fmtstr
     ! skiplines - optional - number of lines to skip from data header
-    integer, optional :: skiplines
+    integer, optional :: skiplines_in
+    integer :: skiplines
 
     ! OUTPUT:
     ! evenly spaced VSF array of size lmax x 2
     double precision, dimension(lmax) :: calc_vsf_arr
 
     ! BODY:
-    
+
     ! phi step size
     double precision dphi
     ! Array from data file
-    double precision, dimension(lmax,2) :: vsf_data
+    double precision, dimension(data_rows,2) :: vsf_data
     ! Angle at which to evaluate (interpolate) VSF
     double precision phi
     ! Phi index
     integer ll
 
     ! Default format string
-    if(.not. present(fmtstr)) then
+    if(present(fmtstr_in)) then
+        fmtstr = fmtstr_in
+    else
         fmtstr = 'E10.2'
     end if
 
     ! Skip no lines if not specified
-    if(.not. present(skiplines)) then
+    if(present(skiplines_in)) then
+        skiplines = skiplines_in
+    else
         skiplines = 0
     end if
 
@@ -76,8 +82,8 @@ function calc_vsf_arr(vsf_file,data_rows,lmax,fmtstr,skiplines)
     dphi = 2 * pi / lmax
 
     ! Read data file
-    write(*,*) 'Reading "', vsf_file, '"'
-    vsf_data = read_array(vsf_file,fmtstr,data_rows,2, skiplines)
+    vsf_data = read_array(trim(vsf_file),trim(fmtstr),data_rows,2, skiplines)
+    !call read_array(vsf_data,trim(vsf_file),'E10.2',48,2)
 
     ! Loop through phi values
     do ll = 1, lmax - 1

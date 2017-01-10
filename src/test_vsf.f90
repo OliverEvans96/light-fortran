@@ -1,7 +1,7 @@
 ! File Name: test_vsf.f90
 ! Description: Test calc_vsf_array
 ! Created: Wed Jan 04, 2017 | 06:47pm EST
-! Last Modified: Sat Jan 07, 2017 | 07:08pm EST
+! Last Modified: Tue Jan 10, 2017 | 11:51am EST
 ! Author: Oliver Evans <oge1@zips.uakron.edu>
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
@@ -32,7 +32,8 @@ program test_vsf
     ! VSF file to read
     character(len=256) vsf_file
     ! File length
-    integer, parameter :: data_rows = 55
+    !integer, parameter :: data_rows = 55
+    integer, parameter :: data_rows = 48
     ! Desired number of points to interpolate
     integer, parameter :: lmax = 10
     ! Desired step size
@@ -44,14 +45,17 @@ program test_vsf
     ! angular array
     double precision, dimension(lmax) :: phi
     ! array with both angle and vsf
-    double precision, dimension(lmax,2) :: out_arr
+    double precision, dimension(data_rows,2) :: out_arr
 
     write(*,*) 'Begin!'
 
     ! File to read
-    vsf_file = '/home/oliver/academic/research/kelp/fortran/data/vsf/nuc_vsf.txt'
+    !vsf_file = trim(getbasedir()) // '/data/vsf/nuc_vsf.txt'
+    vsf_file = trim(getbasedir()) // '/data/sin4x_12rows_10.2e.txt'
     ! Data format
-    fmtstr = 'E13.4'
+    !fmtstr = 'E13.4'
+    !fmtstr = 'F13.7'
+    fmtstr = 'E10.2'
 
     ! Calculate phi
     write(*,*) 'bnd2arr'
@@ -59,13 +63,16 @@ program test_vsf
 
     ! Calculate VSF
     write(*,*) 'calc_vsf_arr'
-    beta = calc_vsf_arr(trim(vsf_file), data_rows, lmax, trim(fmtstr), 1)
+    out_arr = read_array(trim(vsf_file),'E10.2',48,2)
+    call print_array(out_arr,48,2)
+    beta = calc_vsf_arr(vsf_file, data_rows, lmax, trim(fmtstr), 0)
+    call print_array(beta,48,2)
 
     ! Generate output array
-    out_arr(:,1) = phi
-    out_arr(:,2) = beta
+    !out_arr(:,1) = phi
+    !out_arr(:,2) = beta
 
     ! Print result
-    call print_array(out_arr, lmax, 2)
+    !call print_array(out_arr, lmax, 2)
 
 end program

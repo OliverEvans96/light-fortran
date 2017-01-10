@@ -1,7 +1,7 @@
 ! File Name: utils.f90
 ! Description: General utilities which might be useful in other settings
 ! Created: Wed Jan 04, 2017 | 06:24pm EST
-! Last Modified: Sun Jan 08, 2017 | 12:33am EST
+! Last Modified: Tue Jan 10, 2017 | 11:49am EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -72,7 +72,7 @@ function getbasedir()
         tmp_path = check_paths(ii)
 
         ! Check whether Makefile is in this directory
-        write(*,*) 'Checking "', tmp_path(1:pathlengths(ii)), '"'
+        !write(*,*) 'Checking "', tmp_path(1:pathlengths(ii)), '"'
         inquire(file=tmp_path(1:pathlengths(ii)) // '/Makefile', exist=found)
         ! If so, stop. Otherwise, keep looking.
         if(found) then
@@ -99,7 +99,7 @@ function bnd2max(xmin,xmax,dx)
     ! xmax - maximum x value in array (inclusive)
     ! dx - step size
     double precision, intent(in) :: xmin, xmax, dx
-    
+
     ! OUTPUT:
     ! step2max - maximum index of array
     integer bnd2max
@@ -111,19 +111,19 @@ end function
 ! Create array from bounds and number of elements
 function bnd2arr(xmin,xmax,imax)
     implicit none
-    
+
     ! INPUTS:
     ! xmin - minimum x value in array
     ! xmax - maximum x value in array (inclusive)
     double precision, intent(in) :: xmin, xmax
     ! imax - number of elements in array
     integer imax
-    
+
     ! OUTPUT:
     ! bnd2arr - array to generate
     double precision, dimension(imax) :: bnd2arr
 
-    ! BODY: 
+    ! BODY:
 
     ! Counter
     integer ii
@@ -150,7 +150,7 @@ function interp(x0,xx,yy,nn)
     double precision, intent(in) :: x0
     ! xx - ordered x values at which y data is sampled
     ! yy - corresponding y values to interpolate
-    double precision, dimension (nn), intent(in) :: xx,yy    
+    double precision, dimension (nn), intent(in) :: xx,yy
     ! nn - length of data
     integer, intent(in) :: nn
 
@@ -184,7 +184,7 @@ function interp(x0,xx,yy,nn)
 end function
 
 ! Read 2D array from file
-function read_array(filename,fmtstr,nn,mm,skiplines)
+function read_array(filename,fmtstr,nn,mm,skiplines_in)
     implicit none
 
     ! INPUTS:
@@ -196,11 +196,12 @@ function read_array(filename,fmtstr,nn,mm,skiplines)
     ! mm - number of data columns in file
     integer, intent(in) :: nn, mm
     ! skiplines - optional - number of lines to skip from header
-    integer, optional :: skiplines
+    integer, optional :: skiplines_in
+    integer skiplines
 
     ! OUTPUT:
-    double precision, dimension(nn,mm) :: read_array
-    
+    double precision, dimension(nn,mm) :: read_array, tmp_array
+
     ! BODY:
 
     ! Row,column counters
@@ -211,6 +212,12 @@ function read_array(filename,fmtstr,nn,mm,skiplines)
     character(len=256) finfmt
     ! Format string for debugging
     character(len=256) dbgfmt
+    ! Temporary string to read to
+    character(len=256) tmpstr
+    ! iostat flag
+    integer io
+    ! Temporary variable to read & write
+    double precision, dimension(mm) :: tmpdbl
 
     ! Generate final format string
     write(finfmt,'(A,I1,A,A)') '(', mm, fmtstr, ')'
@@ -226,22 +233,20 @@ function read_array(filename,fmtstr,nn,mm,skiplines)
     open(unit=un, file=trim(filename), status='old', form='formatted')
 
     ! Skip lines if desired
-    if(present(skiplines)) then
+    if(present(skiplines_in)) then
+        skiplines = skiplines_in
         do ii = 1, skiplines
             ! Read without variable ignores the line
             read(un,*)
         end do
+    else
+        skiplines = 0
     end if
 
     ! Loop through lines
-    do ii = 1, nn - skiplines
+    do ii = 1, nn
         ! Read one row at a time
-        !write(*,*) 'Read format: "', trim(finfmt), '"'
-        !read(unit=un, fmt=trim(finfmt)) read_array(ii,:)
-        read(unit=un, fmt=trim(finfmt)) (read_array(ii,jj),jj=1,mm)
-        !write(*,*) 'Write format: "', trim(dbgfmt), '"'
-        write(*,fmt=trim(dbgfmt)) ii + skiplines, ': "', read_array(ii,:), '"'
-        !write(*,*) 'Done'
+        read(unit=un, fmt=trim(finfmt)) read_array(ii,:)
     end do
 
     ! Close file
@@ -250,7 +255,7 @@ function read_array(filename,fmtstr,nn,mm,skiplines)
 end function
 
 ! Print 2D array to stdout
-subroutine print_array(arr,nn,mm,fmtstr)
+subroutine print_array(arr,nn,mm,fmtstr_in)
     implicit none
 
     ! INPUTS:
@@ -261,29 +266,32 @@ subroutine print_array(arr,nn,mm,fmtstr)
     integer, intent(in) :: nn, mm
     ! fmtstr - output format (no parentheses, don't specify columns)
     ! e.g. 'E10.2', not '(2E10.2)'
-    character(len=*), optional :: fmtstr
-    
+    character(len=*), optional :: fmtstr_in
+    character(len=256) fmtstr
+
     ! NO OUTPUTS
 
     ! BODY
-    
+
     ! Row counter
     integer ii
     ! Final format to use
     character(len=256) finfmt
 
     ! Determine string format
-    if(.not. present(fmtstr)) then
+    if(present(fmtstr_in)) then
+        fmtstr = fmtstr_in
+    else
         fmtstr = 'E10.2'
     end if
 
     ! Generate final format string
-    write(finfmt,'(A,I4,A,A)') '(', mm, fmtstr, ')'
+    write(finfmt,'(A,I4,A,A)') '(', mm, trim(fmtstr), ')'
 
     ! Loop through rows
     do ii = 1, nn
         ! Print one row at a time
-        write(*,finfmt) arr(ii,:) 
+        write(*,finfmt) arr(ii,:)
     end do
 
     ! Print blank line after

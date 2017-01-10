@@ -1,7 +1,7 @@
 ! File Name: test_interp.f90
 ! Description: Test interp.f90
 ! Created: Wed Jan 04, 2017 | 06:47pm EST
-! Last Modified: Sat Jan 07, 2017 | 07:07pm EST
+! Last Modified: Sun Jan 08, 2017 | 01:35am EST
 ! Author: Oliver Evans <oge1@zips.uakron.edu>
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
@@ -32,12 +32,12 @@ program test_interp
     ! File to read
     character(len=256) filename
     ! Array dimensions
-    integer, parameter :: nn=12, mm=2
+    integer, parameter :: nn=48, mm=2
     ! Array variable
     double precision, dimension(nn,mm) :: arr
 
     ! File to read
-    filename = '/home/oliver/academic/research/kelp/fortran/data/sin4x_12rows_10.2e.txt'
+    filename = trim(getbasedir()) // '/data/sin4x_12rows_10.2e.txt'
 
     ! Read data file
     !write(*,*) 'Reading array from "', filename, '"'
