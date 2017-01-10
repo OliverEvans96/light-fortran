@@ -1,7 +1,7 @@
 ! File Name: rte_core.f90
 ! Description: Subprograms applicable to RTE in general
 ! Created: Fri Jan 06, 2017 | 10:54am EST
-! Last Modified: Tue Jan 10, 2017 | 11:51am EST
+! Last Modified: Tue Jan 10, 2017 | 02:06pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -50,8 +50,8 @@ function calc_vsf_arr(vsf_file,data_rows,lmax,fmtstr_in,skiplines_in)
     integer :: skiplines
 
     ! OUTPUT:
-    ! evenly spaced VSF array of size lmax x 2
-    double precision, dimension(lmax) :: calc_vsf_arr
+    ! evenly spaced VSF array of size lmax-1
+    double precision, dimension(lmax-1) :: calc_vsf_arr
 
     ! BODY:
 
@@ -79,11 +79,10 @@ function calc_vsf_arr(vsf_file,data_rows,lmax,fmtstr_in,skiplines_in)
     end if
 
     ! Calculate phi step size
-    dphi = 2 * pi / lmax
+    dphi = pi / lmax
 
     ! Read data file
-    vsf_data = read_array(trim(vsf_file),trim(fmtstr),data_rows,2, skiplines)
-    !call read_array(vsf_data,trim(vsf_file),'E10.2',48,2)
+    vsf_data = read_array(trim(vsf_file),trim(fmtstr),data_rows,2,skiplines)
 
     ! Loop through phi values
     do ll = 1, lmax - 1
@@ -92,7 +91,7 @@ function calc_vsf_arr(vsf_file,data_rows,lmax,fmtstr_in,skiplines_in)
         phi = ll * dphi
 
         ! Interpolate data
-        calc_vsf_arr(ll) = interp(phi, vsf_data(:,1), vsf_data(:,2), lmax-1)
+        calc_vsf_arr(ll) = interp(phi, vsf_data(:,1), vsf_data(:,2), data_rows)
     end do
 
 end function

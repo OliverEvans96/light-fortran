@@ -38,7 +38,7 @@ test_interp: utils.o
 
 test_rte2d: rte2d.o
 
-test_vsf: rte_core.o utils.o
+test_vsf: rte_core.o
 	 $(FC) $(BFLAGS) $(SRC)/test_vsf.f90 $(INC)/rte_core.o $(INC)/utils.o -o $(BIN)/test_vsf
 
 ################

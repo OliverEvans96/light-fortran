@@ -1,7 +1,7 @@
 ! File Name: utils.f90
 ! Description: General utilities which might be useful in other settings
 ! Created: Wed Jan 04, 2017 | 06:24pm EST
-! Last Modified: Tue Jan 10, 2017 | 11:49am EST
+! Last Modified: Tue Jan 10, 2017 | 02:08pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -109,12 +109,13 @@ function bnd2max(xmin,xmax,dx)
 end function
 
 ! Create array from bounds and number of elements
+! xmax is not included in array
 function bnd2arr(xmin,xmax,imax)
     implicit none
 
     ! INPUTS:
     ! xmin - minimum x value in array
-    ! xmax - maximum x value in array (inclusive)
+    ! xmax - maximum x value in array (exclusive)
     double precision, intent(in) :: xmin, xmax
     ! imax - number of elements in array
     integer imax
@@ -135,7 +136,7 @@ function bnd2arr(xmin,xmax,imax)
 
     ! Generate array
     do ii = 1, imax
-        bnd2arr(ii) = xmin + ii * dx
+        bnd2arr(ii) = xmin + (ii-1) * dx
     end do
 
 end function
@@ -183,6 +184,64 @@ function interp(x0,xx,yy,nn)
     interp = yy(ii) + mm * (x0 - xx(ii))
 end function
 
+! Integrate using left endpoint rule
+function lep_rule(arr,dx,nn)
+    implicit none
+
+    ! INPUTS:
+    ! arr - array to integrate
+    double precision, dimension(nn) :: arr
+    ! dx - array spacing (mesh size)
+    double precision dx
+    ! nn - length of arr
+    integer, intent(in) :: nn
+
+    ! OUTPUT:
+    ! lep_rule - integral w/ left endpoint rule
+    double precision lep_rule
+
+    ! BODY:
+    
+    ! Counter
+    integer ii
+
+    ! Set output to zero
+    lep_rule = 0
+
+    ! Accumulate integral
+    do ii = 1, nn
+        lep_rule = lep_rule + arr(ii) * dx
+    end do
+
+end function
+        
+
+! Normalize 1D array and return integral w/ left endpoint rule
+function normalize(arr,dx,nn)
+    implicit none
+    
+    ! INPUTS:
+    ! arr - array to normalize
+    double precision, dimension(nn) :: arr
+    ! dx - array spacing (mesh size)
+    double precision dx
+    ! nn - length of arr
+    integer, intent(in) :: nn
+
+    ! OUTPUT:
+    ! normalize - integral before normalization (left endpoint rule)
+    double precision normalize
+
+    ! BODY:
+
+    ! Calculate integral
+    normalize = lep_rule(arr,dx,nn)
+
+    ! Normalize array
+    arr = arr / normalize
+
+end function 
+
 ! Read 2D array from file
 function read_array(filename,fmtstr,nn,mm,skiplines_in)
     implicit none
@@ -210,10 +269,6 @@ function read_array(filename,fmtstr,nn,mm,skiplines_in)
     integer, parameter :: un = 10
     ! Final format to use
     character(len=256) finfmt
-    ! Format string for debugging
-    character(len=256) dbgfmt
-    ! Temporary string to read to
-    character(len=256) tmpstr
     ! iostat flag
     integer io
     ! Temporary variable to read & write
@@ -222,12 +277,9 @@ function read_array(filename,fmtstr,nn,mm,skiplines_in)
     ! Generate final format string
     write(finfmt,'(A,I1,A,A)') '(', mm, fmtstr, ')'
 
-    ! Generate debug format string
-    write(dbgfmt,'(A,I1,A,A)') '(I3, A, ', mm, fmtstr, ', A)'
-
     ! Print message
     write(*,*) 'Reading data from "', trim(filename), '"'
-    write(*,*) 'Using format "', trim(finfmt), '"'
+    write(*,*) 'using format "', trim(finfmt), '"'
 
     ! Open file
     open(unit=un, file=trim(filename), status='old', form='formatted')
@@ -298,5 +350,58 @@ subroutine print_array(arr,nn,mm,fmtstr_in)
     write(*,*) ' '
 
 end subroutine
+
+! Write 2D array to file
+subroutine write_array(arr,nn,mm,filename,fmtstr_in)
+    implicit none
+
+    ! INPUTS:
+    ! arr - array to print
+    double precision, dimension (nn,mm), intent(in) :: arr
+    ! nn - number of data rows in file
+    ! nn - number of data columns in file
+    integer, intent(in) :: nn, mm
+    ! filename - file to write to
+    character(len=*) filename
+    ! fmtstr - output format (no parentheses, don't specify columns)
+    ! e.g. 'E10.2', not '(2E10.2)'
+    character(len=*), optional :: fmtstr_in
+    character(len=256) fmtstr
+
+    ! NO OUTPUTS
+
+    ! BODY
+
+    ! Row counter
+    integer ii
+    ! Final format to use
+    character(len=256) finfmt
+    ! Dummy file unit to use
+    integer, parameter :: un = 20
+
+    ! Open file for writing
+    open(unit=un, file=trim(filename), status='replace', form='formatted')
+
+    ! Determine string format
+    if(present(fmtstr_in)) then
+        fmtstr = fmtstr_in
+    else
+        fmtstr = 'E10.2'
+    end if
+
+    ! Generate final format string
+    write(finfmt,'(A,I4,A,A)') '(', mm, trim(fmtstr), ')'
+
+    ! Loop through rows
+    do ii = 1, nn
+        ! Print one row at a time
+        write(un,finfmt) arr(ii,:)
+    end do
+
+    ! Close file
+    close(unit=un)
+
+end subroutine
+
 
 end module

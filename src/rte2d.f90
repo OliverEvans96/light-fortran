@@ -1,7 +1,7 @@
 ! File Name: rte2d.f90
 ! Description: Subprograms specific to 2D RTE
 ! Created: Thu Jan 05, 2017 | 06:30pm EST
-! Last Modified: Sat Jan 07, 2017 | 06:52pm EST
+! Last Modified: Tue Jan 10, 2017 | 02:45pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -47,6 +47,7 @@ function diff_ind(ll,lp,lmax)
 end function
 
 ! Checkerboard successive over-relaxation for the 2D RTE
+! Periodic boundary conditions in the x direction
 subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                 tol, maxiter, omega)
     use utils
@@ -73,7 +74,7 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
 
     ! Step size in each dimension
     double precision dx, dy, dphi
-    
+
     ! OUTPUTS:
     ! rad will be updated
 
@@ -147,34 +148,45 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                 !!! Parallelize this loop !!!
                 do ii = 2-mod(jj,2), imax, 2
 
-                    ! Calculate xx
-                    xx = (ii-1) * dx
+                    ! Loop through phi values
+                    ! Do not parallelize
+                    do ll = 1, lmax
+                        write(*,'(I3,I3,I3)') ii, jj, ll
 
-                    ! Calculate derivatives
-                    drdx = (rad(ii+1,jj,ll) - rad(ii-1,jj,ll)) / (2*dx)
-                    drdx = (rad(ii,jj+1,ll) - rad(ii,jj-1,ll)) / (2*dy)
-                    drdr = drdx * cos(phi) + drdy * sin(phi)
+                        ! Calculate phi
+                        phi = (ll-1) * dphi
 
-                    ! Calculate source term
-                    ! Set to zero, then integrate
-                    source = 0
-                    do lp = 1, lmax
-                        ! Exclude scattering from the current direction
-                        if(lp .eq. ll) then
-                            cycle
-                        end if
+                        ! Calculate xx
+                        xx = (ii-1) * dx
 
-                        ! Integrate (left endpoint rule)
-                        source = source + beta(diff_ind(ll,lp,lmax)) &
-                                * rad(ii,jj,lp) * dphi
+                        ! Calculate derivatives
+                        ! Periodic in x direction
+                        drdx = (rad(mod(ii+1,imax),jj,ll) &
+                                - rad(mod(ii-1,imax),jj,ll)) / (2*dx)
+                        drdx = (rad(ii,jj+1,ll) - rad(ii,jj-1,ll)) / (2*dy)
+                        drdr = drdx * cos(phi) + drdy * sin(phi)
+
+                        ! Calculate source term
+                        ! Set to zero, then integrate
+                        source = 0
+                        do lp = 1, lmax
+                            ! Exclude scattering from the current direction
+                            if(lp .eq. ll) then
+                                cycle
+                            end if
+
+                            ! Integrate (left endpoint rule)
+                            source = source + beta(diff_ind(ll,lp,lmax)) &
+                                    * rad(ii,jj,lp) * dphi
+                        end do
+
+                        ! Calculate Gauss-Seidel term
+                        gs_term = 1/cc(ii,jj) * (source - drdr)
+
+                        ! Calculate SOR correction and update
+                        rad(ii,jj,ll) = (1-omega) * rad(ii,jj,ll) &
+                                        +  omega  * gs_term
                     end do
-
-                    ! Calculate Gauss-Seidel term
-                    gs_term = 1/cc(ii,jj) * (source - drdr)
-
-                    ! Calculate SOR correction and update
-                    rad(ii,jj,ll) = (1-omega) * rad(ii,jj,ll) &
-                                    +  omega  * gs_term
                 end do
             end do
         end do
@@ -182,4 +194,5 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
 
 end subroutine
 
-end module 
+
+end module
