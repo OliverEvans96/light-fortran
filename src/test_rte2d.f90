@@ -1,7 +1,7 @@
 ! File Name: test_rte2d.f90
 ! Description: Test RTE 2D w/ checkerboard SOR, periodic x
 ! Created: Tue Jan 10, 2017 | 02:54pm EST
-! Last Modified: Tue Jan 10, 2017 | 08:00pm EST
+! Last Modified: Tue Jan 10, 2017 | 10:31pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -26,14 +26,15 @@
 
 ! Test RTE2D
 program test_rte2d
-
-    ! Surface boundary condition
-    double precision, dimension(imax) surf_bc
+    use rte2d
 
     ! Box dimensions
-    double precision, parameter :: imax = 100
-    double precision, parameter :: jmax = 100
-    double precision, parameter :: lmax = 100
+    integer, parameter :: imax = 100
+    integer, parameter :: jmax = 100
+    integer, parameter :: lmax = 100
+
+    ! Surface boundary condition
+    double precision, dimension(imax) :: surf_bc
 
     ! Absorption coefficient
     double precision, parameter :: aa = 1
@@ -58,13 +59,16 @@ program test_rte2d
 
     ! Read boundary conditions from file
     ! Each row is the radiance value at a corresponding angle
-    ! Angle is measured from downward pointing z-axis
+    ! Angle is measured from the x-axis, which points right
+    ! towards the downward-pointing y-axis.
     ! Refer to fig. 2 in summary paper
-    surf_bc = reshape(read_array(trim(getbasedir()//'/data/surf_bc_50.txt'),imax,1),1)
+    surf_bc = reshape(read_array(trim(getbasedir())//'/data/surf_bc_50.txt',imax,1),1)
 
     ! Apply boundary conditions (constant over space)
     do ii = 1, imax
-        rad(:,1,ll)
+        do ll = 1, int(lmax/2)
+            rad(ii,1,ll) = surf_bc(ii,jj)
+        end do
     end do
 
     write(*,*) 'Initial guess'
@@ -80,7 +84,7 @@ program test_rte2d
 
     ! Perform SOR
     write(*,*) 'SOR'
-    sor(rad, aa, bb, beta, imax, hmax, lmax, tol, maxiter, omega)
+    call sor(rad, aa, bb, beta, imax, hmax, lmax, tol, maxiter, omega)
 
     ! Calculate irradiance at each point in space
     write(*,*) 'Irradiance'
@@ -91,8 +95,9 @@ program test_rte2d
         end do
     end do
 
+    write(*,*) trim(getbasedir())//'/results/irrad.txt'
     ! Write irradiance to file
-    write_array(irrad, imax, jmax,trim(getbasedir())//'/results/irrad.txt','10.4E')
+    write_array(irrad, imax, jmax, trim(getbasedir())//'/results/irrad.txt', '10.4E')
     write(*,*) 'Done RTE!'
 
 end program

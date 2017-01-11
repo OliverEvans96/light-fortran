@@ -1,7 +1,7 @@
 ! File Name: utils.f90
 ! Description: General utilities which might be useful in other settings
 ! Created: Wed Jan 04, 2017 | 06:24pm EST
-! Last Modified: Tue Jan 10, 2017 | 02:08pm EST
+! Last Modified: Tue Jan 10, 2017 | 10:30pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -201,7 +201,7 @@ function lep_rule(arr,dx,nn)
     double precision lep_rule
 
     ! BODY:
-    
+
     ! Counter
     integer ii
 
@@ -214,12 +214,12 @@ function lep_rule(arr,dx,nn)
     end do
 
 end function
-        
+
 
 ! Normalize 1D array and return integral w/ left endpoint rule
 function normalize(arr,dx,nn)
     implicit none
-    
+
     ! INPUTS:
     ! arr - array to normalize
     double precision, dimension(nn) :: arr
@@ -240,7 +240,7 @@ function normalize(arr,dx,nn)
     ! Normalize array
     arr = arr / normalize
 
-end function 
+end function
 
 ! Read 2D array from file
 function read_array(filename,fmtstr,nn,mm,skiplines_in)

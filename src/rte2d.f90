@@ -1,7 +1,7 @@
 ! File Name: rte2d.f90
 ! Description: Subprograms specific to 2D RTE
 ! Created: Thu Jan 05, 2017 | 06:30pm EST
-! Last Modified: Tue Jan 10, 2017 | 08:02pm EST
+! Last Modified: Tue Jan 10, 2017 | 10:21pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -172,7 +172,7 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                                 - rad(mod(ii-1,imax),jj,ll)) / (2*dx)
 
                         ! No upwelling radiance on bottom (highest j index)
-                        if(jj .lt. jmax) then
+                        if((jj .lt. jmax) .and. (ll .gt. lmax/2)) then
                             drdx = (rad(ii,jj+1,ll) - rad(ii,jj-1,ll)) / (2*dy)
                         else
                             drdx = (0 - rad(ii,jj-1,ll)) / (2*dy)
@@ -196,7 +196,7 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                         end do
 
                         ! Calculate Gauss-Seidel term
-                        gs_term = 1/cc(ii,jj) * (bb*source - drdr)
+                        gs_term = 1/cc(ii,jj) * (bb(ii,jj)*source - drdr)
 
                         ! Calculate SOR correction and update
                         rad(ii,jj,ll) = (1-omega) * rad(ii,jj,ll) &
