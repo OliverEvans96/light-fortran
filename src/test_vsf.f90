@@ -1,7 +1,7 @@
 ! File Name: test_vsf.f90
 ! Description: Test calc_vsf_array
 ! Created: Wed Jan 04, 2017 | 06:47pm EST
-! Last Modified: Tue Jan 10, 2017 | 02:31pm EST
+! Last Modified: Tue Jan 10, 2017 | 08:06pm EST
 ! Author: Oliver Evans <oge1@zips.uakron.edu>
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
@@ -53,7 +53,7 @@ program test_vsf
     write(*,*) 'Begin!'
 
     ! File to read
-    vsf_file = trim(getbasedir()) // '/data/vsf/nuc_vsf_exp.txt'
+    vsf_file = trim(getbasedir()) // '/data/vsf/nuc_vsf.txt'
     ! Data format
     fmtstr = 'E13.4'
 
@@ -82,10 +82,10 @@ program test_vsf
     ! Print result
     write(*,*) 'Final result'
     call print_array(out_arr, lmax-1, 2)
-    call write_array(out_arr, lmax-1, 2,trim(getbasedir())//'/data/vsf/vsf_interp.txt','E13.4')
+    call write_array(out_arr, lmax-1, 2,trim(getbasedir())//'/results/vsf_interp.txt','E13.4')
     write(*,*) 'Normalized result'
     call print_array(norm_arr, lmax-1, 2)
-    call write_array(norm_arr, lmax-1, 2,trim(getbasedir())//'/data/vsf/vsf_norm.txt','E13.4')
+    call write_array(norm_arr, lmax-1, 2,trim(getbasedir())//'/results/vsf_norm.txt','E13.4')
     write(*,'(A,E13.4)') 'Integral = ', integral
     write(*,*) 'Written to file'
 
