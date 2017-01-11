@@ -1,7 +1,7 @@
 ! File Name: rte2d.f90
 ! Description: Subprograms specific to 2D RTE
 ! Created: Thu Jan 05, 2017 | 06:30pm EST
-! Last Modified: Tue Jan 10, 2017 | 02:45pm EST
+! Last Modified: Tue Jan 10, 2017 | 08:02pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -62,7 +62,7 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
     ! aa - absorption coefficient over space
     ! bb - scattering coefficient over space
     double precision, dimension(imax,jmax), intent(in) :: aa, bb
-    ! beta - volume scattering function evenly spaced array
+    ! beta - normalized volume scattering function evenly spaced array
     ! beta_1 = vsf(dphi); vsf(0) not meaningful
     double precision, dimension(lmax-1), intent(in) :: beta
     ! tol - error tolerance which determines when to stop iterating
@@ -86,6 +86,9 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
 
     ! Array size in each dimension (x, y, phi respectively)
     !integer imax, jmax, lmax
+
+    ! Radiance array from previous iteration for tolerance comparison
+    double precision, dimension(imax,jmax,lmax) :: prev_rad
 
     ! Iteration counter
     integer iter
@@ -130,6 +133,9 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
         omega = 1.75D0
     end if
 
+    ! Copy radiance array to prev_rad
+    prev_rad = rad
+
     ! Loop through iterations
     do iter = 1, maxiter
 
@@ -138,32 +144,41 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
 
             ! Loop through odd/even jj values
             !!! Parallelize this loop !!!
-            do jj = oddeven, jmax, 2
+            !! Add 1 to oddeven to start SOR at 2nd depth layer to accomodate BC
+            do jj = oddeven+1, jmax, 2
 
                 ! Calculate yy
-                yy = (jj-1) * dy
+                !yy = (jj-1) * dy
 
                 ! Loop through even ii values if jj is even
                 ! or odd ii values if jj is odd
                 !!! Parallelize this loop !!!
                 do ii = 2-mod(jj,2), imax, 2
+                    write(*,'(I3,I3,I3)') iter, ii, jj
 
                     ! Loop through phi values
                     ! Do not parallelize
                     do ll = 1, lmax
-                        write(*,'(I3,I3,I3)') ii, jj, ll
 
                         ! Calculate phi
                         phi = (ll-1) * dphi
 
                         ! Calculate xx
-                        xx = (ii-1) * dx
+                        !xx = (ii-1) * dx
 
                         ! Calculate derivatives
                         ! Periodic in x direction
                         drdx = (rad(mod(ii+1,imax),jj,ll) &
                                 - rad(mod(ii-1,imax),jj,ll)) / (2*dx)
-                        drdx = (rad(ii,jj+1,ll) - rad(ii,jj-1,ll)) / (2*dy)
+
+                        ! No upwelling radiance on bottom (highest j index)
+                        if(jj .lt. jmax) then
+                            drdx = (rad(ii,jj+1,ll) - rad(ii,jj-1,ll)) / (2*dy)
+                        else
+                            drdx = (0 - rad(ii,jj-1,ll)) / (2*dy)
+                        end if
+
+                        ! Radial derivative in the direction of ray
                         drdr = drdx * cos(phi) + drdy * sin(phi)
 
                         ! Calculate source term
@@ -181,7 +196,7 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                         end do
 
                         ! Calculate Gauss-Seidel term
-                        gs_term = 1/cc(ii,jj) * (source - drdr)
+                        gs_term = 1/cc(ii,jj) * (bb*source - drdr)
 
                         ! Calculate SOR correction and update
                         rad(ii,jj,ll) = (1-omega) * rad(ii,jj,ll) &
@@ -190,6 +205,14 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                 end do
             end do
         end do
+
+        ! Check whether tolerance has been met
+        if(sum(rad-prev_rad) < tol) then
+            exit
+        end if
+
+        ! Update radiance
+        prev_rad = rad
     end do
 
 end subroutine

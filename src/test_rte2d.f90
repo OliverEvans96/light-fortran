@@ -1,7 +1,7 @@
-! File Name:
-! Description:
-! Created: Tue Jan 10, 2017 | 02:52pm EST
-! Last Modified: Tue Jan 10, 2017 | 02:53pm EST
+! File Name: test_rte2d.f90
+! Description: Test RTE 2D w/ checkerboard SOR, periodic x
+! Created: Tue Jan 10, 2017 | 02:54pm EST
+! Last Modified: Tue Jan 10, 2017 | 08:00pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -23,4 +23,78 @@
 ! along with this program. If not, see <http://www.gnu.org/licenses/>. !
 !                                                                      !
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
+
+! Test RTE2D
+program test_rte2d
+
+    ! Surface boundary condition
+    double precision, dimension(imax) surf_bc
+
+    ! Box dimensions
+    double precision, parameter :: imax = 100
+    double precision, parameter :: jmax = 100
+    double precision, parameter :: lmax = 100
+
+    ! Absorption coefficient
+    double precision, parameter :: aa = 1
+    ! Scattering coefficient
+    double precision, parameter :: bb = 1
+    ! Volume Scattering function array (normalized)
+    double precision beta
+
+    ! Radiance array
+    double precision, dimension(imax,jmax,lmax) :: rad
+    ! Irradiance array
+    double precision, dimension(imax,jmax) :: irrad
+
+    ! SOR Parameters
+    ! Tolerance
+    double precision, parameter :: tol = 1.D2
+    ! Maximum # of iterations
+    integer, parameter :: maxiter = 100
+    ! Overrelaxation parameter
+    double precision, parameter :: omega = 1.75D0
+
+
+    ! Read boundary conditions from file
+    ! Each row is the radiance value at a corresponding angle
+    ! Angle is measured from downward pointing z-axis
+    ! Refer to fig. 2 in summary paper
+    surf_bc = reshape(read_array(trim(getbasedir()//'/data/surf_bc_50.txt'),imax,1),1)
+
+    ! Apply boundary conditions (constant over space)
+    do ii = 1, imax
+        rad(:,1,ll)
+    end do
+
+    write(*,*) 'Initial guess'
+    ! Initial guess of 0 everywhere
+    do ll = 1, lmax
+        do jj = 1, jmax
+            do ii = 1, imax
+                rad(ii,jj,ll) = 0
+            end do
+        end do
+    end do
+
+
+    ! Perform SOR
+    write(*,*) 'SOR'
+    sor(rad, aa, bb, beta, imax, hmax, lmax, tol, maxiter, omega)
+
+    ! Calculate irradiance at each point in space
+    write(*,*) 'Irradiance'
+    do jj = 1, jmax
+        do ii = 1, imax
+            ! Integrate radiance over all angles w/ left endpoint rule
+            irrad(ii,jj) = lep_rule(rad(ii,jj,:), dphi, lmax)
+        end do
+    end do
+
+    ! Write irradiance to file
+    write_array(irrad, imax, jmax,trim(getbasedir())//'/results/irrad.txt','10.4E')
+    write(*,*) 'Done RTE!'
+
+end program
+
 
