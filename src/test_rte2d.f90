@@ -1,7 +1,7 @@
 ! File Name: test_rte2d.f90
 ! Description: Test RTE 2D w/ checkerboard SOR, periodic x
 ! Created: Tue Jan 10, 2017 | 02:54pm EST
-! Last Modified: Tue Jan 10, 2017 | 10:31pm EST
+! Last Modified: Sun Jan 15, 2017 | 06:00pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -62,7 +62,7 @@ program test_rte2d
     ! Angle is measured from the x-axis, which points right
     ! towards the downward-pointing y-axis.
     ! Refer to fig. 2 in summary paper
-    surf_bc = reshape(read_array(trim(getbasedir())//'/data/surf_bc_50.txt',imax,1),1)
+    surf_bc = reshape(read_array(trim(getbasedir())//'/data/surf_bc/surf_bc_50.txt',imax,1),1)
 
     ! Apply boundary conditions (constant over space)
     do ii = 1, imax
