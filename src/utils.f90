@@ -1,7 +1,7 @@
 ! File Name: utils.f90
 ! Description: General utilities which might be useful in other settings
 ! Created: Wed Jan 04, 2017 | 06:24pm EST
-! Last Modified: Tue Jan 10, 2017 | 10:30pm EST
+! Last Modified: Wed Jan 18, 2017 | 06:54pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -38,6 +38,7 @@ contains
 function getbasedir()
     implicit none
 
+    ! INPUTS:
     ! Number of paths to check
     integer, parameter :: numpaths = 3
     ! Maximum length of path names

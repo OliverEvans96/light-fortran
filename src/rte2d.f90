@@ -1,7 +1,7 @@
 ! File Name: rte2d.f90
 ! Description: Subprograms specific to 2D RTE
 ! Created: Thu Jan 05, 2017 | 06:30pm EST
-! Last Modified: Tue Jan 10, 2017 | 10:21pm EST
+! Last Modified: Wed Jan 18, 2017 | 05:38pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -25,6 +25,9 @@
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 
 module rte2d
+
+use rte_core
+
 contains
 
 ! Calculate index of beta array which corresponds to beta(phi(ll),phi(lp))
@@ -49,7 +52,7 @@ end function
 ! Checkerboard successive over-relaxation for the 2D RTE
 ! Periodic boundary conditions in the x direction
 subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
-                tol, maxiter, omega)
+                xmin, xmax, ymin, ymax, tol, maxiter, omega)
     use utils
     implicit none
 
@@ -65,6 +68,8 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
     ! beta - normalized volume scattering function evenly spaced array
     ! beta_1 = vsf(dphi); vsf(0) not meaningful
     double precision, dimension(lmax-1), intent(in) :: beta
+    ! xmin, xmax, ymin, ymax - bounds for x and y dimensions respectively
+    double precision, intent(in) :: xmin, xmax, ymin, ymax
     ! tol - error tolerance which determines when to stop iterating
     double precision, optional :: tol
     ! maxiter - maximum number of SOR iterations
@@ -113,9 +118,9 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
     double precision gs_term
 
     ! Calculate step size
-    dx = 1.D0 / imax
-    dy = 1.D0 / jmax
-    dphi = 1.D0 / lmax
+    dx = (xmax - xmin) / imax
+    dy = (ymax - ymin) / jmax
+    dphi = 2 * pi / lmax
 
     ! Calculate attenuation coefficient
     cc = aa + bb
@@ -154,7 +159,7 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                 ! or odd ii values if jj is odd
                 !!! Parallelize this loop !!!
                 do ii = 2-mod(jj,2), imax, 2
-                    write(*,'(I3,I3,I3)') iter, ii, jj
+                    write(*,'(I3,I3)') iter, jj
 
                     ! Loop through phi values
                     ! Do not parallelize
@@ -207,6 +212,9 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
         end do
 
         ! Check whether tolerance has been met
+        write(*,'(A,I3,A,E10.3)') 'After iteration ', iter, &
+                ', err = ', sum(rad-prev_rad)
+        write(*,*)
         if(sum(rad-prev_rad) < tol) then
             exit
         end if

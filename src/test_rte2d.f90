@@ -1,7 +1,7 @@
 ! File Name: test_rte2d.f90
 ! Description: Test RTE 2D w/ checkerboard SOR, periodic x
 ! Created: Tue Jan 10, 2017 | 02:54pm EST
-! Last Modified: Sun Jan 15, 2017 | 06:00pm EST
+! Last Modified: Wed Jan 18, 2017 | 06:54pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -27,21 +27,42 @@
 ! Test RTE2D
 program test_rte2d
     use rte2d
+    implicit none
 
-    ! Box dimensions
+    ! Spatial/angular counters
+    integer ii, jj, ll
+
+    ! Grid size (prescribed)
     integer, parameter :: imax = 100
     integer, parameter :: jmax = 100
     integer, parameter :: lmax = 100
 
-    ! Surface boundary condition
-    double precision, dimension(imax) :: surf_bc
+    ! Grid extent (prescribed)
+    double precision, parameter :: xmin = 0, xmax = 1
+    double precision, parameter :: ymin = 0, ymax = 1
+    double precision, parameter :: phimin = 0, phimax = 2*pi
 
-    ! Absorption coefficient
-    double precision, parameter :: aa = 1
-    ! Scattering coefficient
-    double precision, parameter :: bb = 1
-    ! Volume Scattering function array (normalized)
-    double precision beta
+    ! Grid mesh size (calculated)
+    double precision dx, dy, dphi
+
+    ! Surface boundary condition
+    double precision, dimension(imax/2) :: surf_bc
+
+    ! aa - Absorption coefficient
+    ! bb - Scattering coefficient
+    double precision, dimension(imax,jmax) :: aa, bb
+
+    ! Volume scattering function array (normalized)
+    double precision, dimension(lmax-1) :: beta, norm_beta
+
+    ! Absorption/scattering coefficient values (constant over space)
+    double precision, parameter :: a_val = 1
+    double precision b_val
+
+    ! Volume scattering function data file location, format & # of rows
+    character(len=256) vsf_file
+    character(len=256) vsf_fmt
+    integer, parameter :: vsf_data_rows = 55
 
     ! Radiance array
     double precision, dimension(imax,jmax,lmax) :: rad
@@ -56,18 +77,45 @@ program test_rte2d
     ! Overrelaxation parameter
     double precision, parameter :: omega = 1.75D0
 
+    ! BODY:
+
+    ! Calculate mesh sizes
+    dx = (xmax - xmin) / (imax - 1)
+    dy = (ymax - ymin) / (jmax - 1)
+    dphi = (phimax - phimin) / lmax
+
+    ! VSF file location & data format
+    vsf_file = trim(getbasedir()) // '/data/vsf/nuc_vsf.txt'
+    vsf_fmt = 'E13.4'
+
+    ! Generate VSF array
+    beta = calc_vsf_arr(trim(vsf_file), vsf_data_rows, lmax, trim(vsf_fmt), 1)
+    norm_beta = beta
+    ! Determine scattering coefficient & normalize array
+    b_val = normalize(norm_beta,dphi,lmax-1)
+
+    ! Fill coefficient arrays
+    do ii = 1, imax
+        do jj = 1, jmax
+            aa(ii,jj) = a_val
+            bb(ii,jj) = b_val
+        end do
+    end do
 
     ! Read boundary conditions from file
     ! Each row is the radiance value at a corresponding angle
     ! Angle is measured from the x-axis, which points right
     ! towards the downward-pointing y-axis.
     ! Refer to fig. 2 in summary paper
-    surf_bc = reshape(read_array(trim(getbasedir())//'/data/surf_bc/surf_bc_50.txt',imax,1),1)
+
+    ! read_array generates imax/2 x 1 array. Reshape this into
+    ! an array of rank 1 and length imax.
+    surf_bc = reshape(read_array(trim(getbasedir())//'/data/surf_bc/surf_bc_50.txt','E13.4',imax/2,1),(/imax/2/))
 
     ! Apply boundary conditions (constant over space)
     do ii = 1, imax
         do ll = 1, int(lmax/2)
-            rad(ii,1,ll) = surf_bc(ii,jj)
+            rad(ii,1,ll) = surf_bc(ll)
         end do
     end do
 
@@ -81,10 +129,12 @@ program test_rte2d
         end do
     end do
 
+    ! Read beta 
 
     ! Perform SOR
     write(*,*) 'SOR'
-    call sor(rad, aa, bb, beta, imax, hmax, lmax, tol, maxiter, omega)
+    call sor(rad, aa, bb, beta, imax, jmax, lmax, &
+            xmin, xmax, ymin, ymax, tol, maxiter, omega)
 
     ! Calculate irradiance at each point in space
     write(*,*) 'Irradiance'
@@ -97,7 +147,7 @@ program test_rte2d
 
     write(*,*) trim(getbasedir())//'/results/irrad.txt'
     ! Write irradiance to file
-    write_array(irrad, imax, jmax, trim(getbasedir())//'/results/irrad.txt', '10.4E')
+    write_array(irrad, imax, jmax, trim(getbasedir())//'/results/irrad.txt', 'E10.4')
     write(*,*) 'Done RTE!'
 
 end program

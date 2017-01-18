@@ -1,7 +1,7 @@
 ! File Name: test_interp.f90
 ! Description: Test interp.f90
 ! Created: Wed Jan 04, 2017 | 06:47pm EST
-! Last Modified: Sun Jan 15, 2017 | 06:00pm EST
+! Last Modified: Wed Jan 18, 2017 | 06:54pm EST
 ! Author: Oliver Evans <oge1@zips.uakron.edu>
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
@@ -31,24 +31,54 @@ program test_interp
 
     ! File to read
     character(len=256) filename
-    ! Array dimensions
-    integer, parameter :: nn=48, mm=2
-    ! Array variable
+    ! Input array dimensions
+    integer, parameter :: nn=101, mm=2
+    ! Number of interpolation points
+    integer, parameter :: nout = 101
+    ! Input array variable
     double precision, dimension(nn,mm) :: arr
+    ! Output array variable
+    double precision, dimension(nout,mm) :: out_arr
+    ! Interpolation step size
+    double precision dx
+    ! Input data bounds
+    double precision xmin, xmax
+    ! Index variable
+    integer ii
 
     ! File to read
-    filename = trim(getbasedir()) // '/data/test/sin4x_12rows_10.2e.txt'
+    filename = trim(getbasedir()) // '/data/test/exp_101rows_10.3e.txt'
 
     ! Read data file
     !write(*,*) 'Reading array from "', filename, '"'
-    arr = read_array(trim(filename),'E10.2',nn,mm)
+    arr = read_array(trim(filename),'E10.3',nn,mm)
 
     ! Print array
     write(*,*) 'Printing array'
     call print_array(arr,nn,mm,'E10.2')
 
+    ! Calculate interpolation points *INCLUDE ENDPOINTS*
+    xmin = arr(1,1)
+    xmax = arr(nn,1)
+    dx = (xmax - xmin) / (nout - 1)
+    do ii = 1, nout
+        out_arr(ii,1) = xmin + (ii-1) * dx
+    end do
+
     ! Interpolate
     write(*,*) 'Testing interpolation'
-    write(*,'(A,F5.2)') 'f(1.3) = ', interp(1.3D0,arr(:,1),arr(:,2),12)
+    do ii = 1, nout 
+        out_arr(ii,2) = interp(out_arr(ii,1),arr(:,1),arr(:,2),nout)
+    end do
+
+    ! Write to stdout
+    write(*,'(A,F5.2)') 'f(1.3) = ', out_arr
+
+    ! Write to file
+    write(*,*) 'Test write to file'
+    call write_array(out_arr,nout,mm, &
+            trim(getbasedir())//'/results/test_interp.txt','E10.3')
+
+    write(*,*) 'Done!'
 
 end program
