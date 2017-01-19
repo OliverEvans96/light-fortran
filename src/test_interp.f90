@@ -1,7 +1,7 @@
 ! File Name: test_interp.f90
 ! Description: Test interp.f90
 ! Created: Wed Jan 04, 2017 | 06:47pm EST
-! Last Modified: Wed Jan 18, 2017 | 06:54pm EST
+! Last Modified: Thu Jan 19, 2017 | 04:00pm EST
 ! Author: Oliver Evans <oge1@zips.uakron.edu>
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
@@ -34,7 +34,7 @@ program test_interp
     ! Input array dimensions
     integer, parameter :: nn=101, mm=2
     ! Number of interpolation points
-    integer, parameter :: nout = 101
+    integer, parameter :: nout = 150
     ! Input array variable
     double precision, dimension(nn,mm) :: arr
     ! Output array variable
@@ -55,7 +55,7 @@ program test_interp
 
     ! Print array
     write(*,*) 'Printing array'
-    call print_array(arr,nn,mm,'E10.2')
+    call print_array(arr,nn,mm,'E13.4')
 
     ! Calculate interpolation points *INCLUDE ENDPOINTS*
     xmin = arr(1,1)
@@ -68,17 +68,13 @@ program test_interp
     ! Interpolate
     write(*,*) 'Testing interpolation'
     do ii = 1, nout 
-        out_arr(ii,2) = interp(out_arr(ii,1),arr(:,1),arr(:,2),nout)
+        out_arr(ii,2) = interp(out_arr(ii,1),arr(:,1),arr(:,2),nn)
     end do
-
-    ! Write to stdout
-    write(*,'(A,F5.2)') 'f(1.3) = ', out_arr
 
     ! Write to file
     write(*,*) 'Test write to file'
     call write_array(out_arr,nout,mm, &
-            trim(getbasedir())//'/results/test_interp.txt','E10.3')
-
+            trim(getbasedir())//'/results/test_interp.txt','E13.4')
     write(*,*) 'Done!'
 
 end program

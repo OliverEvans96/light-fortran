@@ -1,7 +1,7 @@
 ! File Name: utils.f90
 ! Description: General utilities which might be useful in other settings
 ! Created: Wed Jan 04, 2017 | 06:24pm EST
-! Last Modified: Wed Jan 18, 2017 | 06:54pm EST
+! Last Modified: Thu Jan 19, 2017 | 04:03pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -175,14 +175,23 @@ function interp(x0,xx,yy,nn)
         end if
     end do
 
-    ! Subtract since we went one index too far
-    ii = ii - 1
+    ! Determine whether we're on the right endpoint
+    if(ii-1 < nn) then
+        ! If this is a legitimate interpolation, then
+        ! subtract since we went one index too far
+        ii = ii - 1
 
-    ! Calculate slope
-    mm = (yy(ii+1) - yy(ii)) / (xx(ii+1) - xx(ii))
+        ! Calculate slope
+        mm = (yy(ii+1) - yy(ii)) / (xx(ii+1) - xx(ii))
 
-    ! Return interpolated value
-    interp = yy(ii) + mm * (x0 - xx(ii))
+        ! Return interpolated value
+        interp = yy(ii) + mm * (x0 - xx(ii))
+    else
+        ! If we're actually interpolating the right endpoint,
+        ! then just return it.
+        interp = yy(nn)
+    end if
+
 end function
 
 ! Integrate using left endpoint rule
