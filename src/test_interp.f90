@@ -1,7 +1,7 @@
 ! File Name: test_interp.f90
 ! Description: Test interp.f90
 ! Created: Wed Jan 04, 2017 | 06:47pm EST
-! Last Modified: Thu Jan 19, 2017 | 04:00pm EST
+! Last Modified: Thu Jan 19, 2017 | 04:12pm EST
 ! Author: Oliver Evans <oge1@zips.uakron.edu>
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
@@ -67,7 +67,7 @@ program test_interp
 
     ! Interpolate
     write(*,*) 'Testing interpolation'
-    do ii = 1, nout 
+    do ii = 1, nout
         out_arr(ii,2) = interp(out_arr(ii,1),arr(:,1),arr(:,2),nn)
     end do
 

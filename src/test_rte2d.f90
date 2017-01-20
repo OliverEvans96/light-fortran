@@ -1,7 +1,7 @@
 ! File Name: test_rte2d.f90
 ! Description: Test RTE 2D w/ checkerboard SOR, periodic x
 ! Created: Tue Jan 10, 2017 | 02:54pm EST
-! Last Modified: Wed Jan 18, 2017 | 06:54pm EST
+! Last Modified: Fri Jan 20, 2017 | 03:27pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -33,9 +33,9 @@ program test_rte2d
     integer ii, jj, ll
 
     ! Grid size (prescribed)
-    integer, parameter :: imax = 100
-    integer, parameter :: jmax = 100
-    integer, parameter :: lmax = 100
+    integer, parameter :: imax = 20
+    integer, parameter :: jmax = 20
+    integer, parameter :: lmax = 20
 
     ! Grid extent (prescribed)
     double precision, parameter :: xmin = 0, xmax = 1
@@ -46,7 +46,7 @@ program test_rte2d
     double precision dx, dy, dphi
 
     ! Surface boundary condition
-    double precision, dimension(imax/2) :: surf_bc
+    double precision, dimension(lmax/2) :: surf_bc
 
     ! aa - Absorption coefficient
     ! bb - Scattering coefficient
@@ -102,6 +102,16 @@ program test_rte2d
         end do
     end do
 
+    write(*,*) 'Initial guess'
+    ! Initial guess of 0 everywhere
+    do ll = 1, lmax
+        do jj = 1, jmax
+            do ii = 1, imax
+                rad(ii,jj,ll) = 0
+            end do
+        end do
+    end do
+
     ! Read boundary conditions from file
     ! Each row is the radiance value at a corresponding angle
     ! Angle is measured from the x-axis, which points right
@@ -110,22 +120,12 @@ program test_rte2d
 
     ! read_array generates imax/2 x 1 array. Reshape this into
     ! an array of rank 1 and length imax.
-    surf_bc = reshape(read_array(trim(getbasedir())//'/data/surf_bc/surf_bc_50.txt','E13.4',imax/2,1),(/imax/2/))
+    surf_bc = reshape(read_array(trim(getbasedir())//'/data/surf_bc/surf_bc_50.txt','E13.4',lmax/2,1),(/lmax/2/))
 
-    ! Apply boundary conditions (constant over space)
+    ! Apply surface boundary conditions (constant over space)
     do ii = 1, imax
-        do ll = 1, int(lmax/2)
+        do ll = 1, lmax/2
             rad(ii,1,ll) = surf_bc(ll)
-        end do
-    end do
-
-    write(*,*) 'Initial guess'
-    ! Initial guess of 0 everywhere
-    do ll = 1, lmax
-        do jj = 1, jmax
-            do ii = 1, imax
-                rad(ii,jj,ll) = 0
-            end do
         end do
     end do
 
@@ -147,7 +147,7 @@ program test_rte2d
 
     write(*,*) trim(getbasedir())//'/results/irrad.txt'
     ! Write irradiance to file
-    write_array(irrad, imax, jmax, trim(getbasedir())//'/results/irrad.txt', 'E10.4')
+    call write_array(irrad, imax, jmax, trim(getbasedir())//'/results/irrad.txt', 'E13.4E3')
     write(*,*) 'Done RTE!'
 
 end program

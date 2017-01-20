@@ -1,7 +1,7 @@
 ! File Name: rte2d.f90
 ! Description: Subprograms specific to 2D RTE
 ! Created: Thu Jan 05, 2017 | 06:30pm EST
-! Last Modified: Wed Jan 18, 2017 | 05:38pm EST
+! Last Modified: Fri Jan 20, 2017 | 05:43pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -89,12 +89,6 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
     double precision xx, yy, phi, phi_p
     integer ii, jj, ll, lp
 
-    ! Array size in each dimension (x, y, phi respectively)
-    !integer imax, jmax, lmax
-
-    ! Radiance array from previous iteration for tolerance comparison
-    double precision, dimension(imax,jmax,lmax) :: prev_rad
-
     ! Iteration counter
     integer iter
 
@@ -117,6 +111,12 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
     ! Gauss-Seidel term
     double precision gs_term
 
+    ! Temporary radiance value for checking error
+    double precision tmp_rad
+
+    ! Error (difference between iterations)
+    double precision err
+
     ! Calculate step size
     dx = (xmax - xmin) / imax
     dy = (ymax - ymin) / jmax
@@ -138,28 +138,42 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
         omega = 1.75D0
     end if
 
-    ! Copy radiance array to prev_rad
-    prev_rad = rad
-
     ! Loop through iterations
     do iter = 1, maxiter
 
+        ! Reset error
+        err = 0
+
         ! Checkerboard - perform SOR on odd cells first, then even
+        ! oddeven = 1: include upper left
+        ! oddeven = 2: Do not include upper left
         do oddeven = 1, 2
 
-            ! Loop through odd/even jj values
             !!! Parallelize this loop !!!
-            !! Add 1 to oddeven to start SOR at 2nd depth layer to accomodate BC
-            do jj = oddeven+1, jmax, 2
+            ! Loop through jj
+            ! Start at column 2 (depth layer 2) to accomodate BC
+            do jj = 2, jmax
 
-                ! Calculate yy
-                !yy = (jj-1) * dy
+                !------------------------!
+                ! Checkerboard loop over !
+                ! cells as follows:      !
+                !------------------------!
+                ! oddeven |  jj  |  ii   !
+                !------------------------!
+                !    1    | odd  | odd   !
+                !    1    | even | even  !
+                !    2    | odd  | even  !
+                !    2    | even | odd   !
+                !------------------------!
 
-                ! Loop through even ii values if jj is even
-                ! or odd ii values if jj is odd
+                ! The following mod formula seems to be
+                ! the most straightforward way to
+                ! accomplish this
+
                 !!! Parallelize this loop !!!
-                do ii = 2-mod(jj,2), imax, 2
-                    write(*,'(I3,I3)') iter, jj
+                do ii = mod(oddeven+jj,2)+1, imax, 2
+
+                    write(*,'(A,I3,I3,I3)') 'LOC ', iter, ii, jj
 
                     ! Loop through phi values
                     ! Do not parallelize
@@ -168,19 +182,26 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                         ! Calculate phi
                         phi = (ll-1) * dphi
 
-                        ! Calculate xx
-                        !xx = (ii-1) * dx
-
                         ! Calculate derivatives
                         ! Periodic in x direction
                         drdx = (rad(mod(ii+1,imax),jj,ll) &
                                 - rad(mod(ii-1,imax),jj,ll)) / (2*dx)
 
-                        ! No upwelling radiance on bottom (highest j index)
-                        if((jj .lt. jmax) .and. (ll .gt. lmax/2)) then
-                            drdx = (rad(ii,jj+1,ll) - rad(ii,jj-1,ll)) / (2*dy)
+                        ! y derivative
+                        ! Interior
+                        if(jj .lt. jmax) then
+                            ! CD2 for interior
+                            drdy = (rad(ii,jj+1,ll) - rad(ii,jj-1,ll)) / (2*dy)
+                        ! Bottom (jj = jmax; greatest depth)
                         else
-                            drdx = (0 - rad(ii,jj-1,ll)) / (2*dy)
+                            ! BD2 for downwelling radiance
+                            if(ll .lt. lmax/2) then
+                                drdy = (3*rad(ii,jj,ll) - 4*rad(ii,jj-1,ll) &
+                                      + rad(ii,jj-2,ll)) / (2 * dy)
+                            ! No upwelling radiance on bottom (phi >= phimax/2; ll >= lmax/2)
+                            else
+                                drdy = 0
+                            end if
                         end if
 
                         ! Radial derivative in the direction of ray
@@ -189,6 +210,7 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                         ! Calculate source term
                         ! Set to zero, then integrate
                         source = 0
+                        ! SOURCE ZEROED OUT
                         do lp = 1, lmax
                             ! Exclude scattering from the current direction
                             if(lp .eq. ll) then
@@ -204,8 +226,20 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                         gs_term = 1/cc(ii,jj) * (bb(ii,jj)*source - drdr)
 
                         ! Calculate SOR correction and update
-                        rad(ii,jj,ll) = (1-omega) * rad(ii,jj,ll) &
+                        tmp_rad = (1-omega) * rad(ii,jj,ll) &
                                         +  omega  * gs_term
+
+                        ! Accumulate error
+                        err = err + abs(tmp_rad - rad(ii,jj,ll))
+
+                        ! Update radiance
+                        rad(ii,jj,ll) = tmp_rad
+
+                        ! Print radiance
+                        write(*,'(A,I4,I4,I4,A,E13.4E3)') &
+                            '(it,ii,jj,ll): rad = ', ii, jj, ll, &
+                            ': ', rad(ii,jj,ll)
+
                     end do
                 end do
             end do
@@ -213,14 +247,11 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
 
         ! Check whether tolerance has been met
         write(*,'(A,I3,A,E10.3)') 'After iteration ', iter, &
-                ', err = ', sum(rad-prev_rad)
+                ', err = ', err
         write(*,*)
-        if(sum(rad-prev_rad) < tol) then
+        if(err < tol) then
             exit
         end if
-
-        ! Update radiance
-        prev_rad = rad
     end do
 
 end subroutine
