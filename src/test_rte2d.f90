@@ -1,7 +1,7 @@
 ! File Name: test_rte2d.f90
 ! Description: Test RTE 2D w/ checkerboard SOR, periodic x
 ! Created: Tue Jan 10, 2017 | 02:54pm EST
-! Last Modified: Fri Jan 20, 2017 | 03:27pm EST
+! Last Modified: Sun Jan 29, 2017 | 05:10pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -129,7 +129,7 @@ program test_rte2d
         end do
     end do
 
-    ! Read beta 
+    ! Read beta
 
     ! Perform SOR
     write(*,*) 'SOR'
