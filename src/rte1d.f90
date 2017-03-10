@@ -1,7 +1,7 @@
-! File Name: rte2d.f90
-! Description: Subprograms specific to 2D RTE
-! Created: Thu Jan 05, 2017 | 06:30pm EST
-! Last Modified: Sun Jan 29, 2017 | 05:35pm EST
+! File Name: rte1d.f90
+! Description: Subprograms specific to 3D plane parallel RTE
+! Created: Thu Jan 23, 2017 | 05:52pm EST
+! Last Modified: Mon Jan 23, 2017 | 07:30pm EST
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -24,61 +24,66 @@
 !                                                                      !
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 
-module rte2d
+module rte1d
 
 use rte_core
 
 contains
 
-! Calculate index of beta array which corresponds to beta(phi(ll),phi(lp))
-! For use in VSF integration to calculate scattering
-function diff_ind(ll,lp,lmax)
+! Calculate the angle between two unit vectors in the directions
+! (theta,phi) and (theta_p[rime],phi_p[rime])
+function anglediff(theta,phi,theta_p,phi_p)
     implicit none
 
-    ! INPUTS:
-    ! ll, lp - two angular indices
-    ! lmax - total number of angles
-    ! lmax should be even. Not sure what happens otherwise
-    integer, intent(in) :: ll, lp, lmax
+    ! INPUTS
+    ! theta - azimuthal angle #1
+    double precision theta
+    ! phi - polar angle #1
+    double precision phi
+    ! theta - azimuthal angle #2
+    double precision theta_p
+    ! phi - polar angle #2
+    double precision phi_p
 
-    ! OUTPUT:
-    ! diff_ind - index of difference
-    integer diff_ind
+    ! OUTPUT
+    ! anglediff - angle between two vectors
+    double precision anglediff
 
-    ! Calculate index
-    diff_ind = mod(ll - lp, lmax/2 + 1)
+    anglediff = acos(sin(phi)*sin(phi_p)*cos(theta-theta_p) + cos(phi)*cos(phi_p))
 end function
+
 
 ! Checkerboard successive over-relaxation for the 2D RTE
 ! Periodic boundary conditions in the x direction
-subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
-                xmin, xmax, ymin, ymax, tol, maxiter, omega)
-    use utils
+subroutine sor(rad, aa, bb, beta, jmax, lmax, mmax, vmax&
+                zmin, zmax, tol, maxiter, omega)
     implicit none
 
     ! INPUTS:
     ! rad - radiance array to be updated.
     ! should be already set with some initial guess
     double precision, dimension(imax,jmax,lmax) :: rad
-    ! imax, jmax, lmax - array size in x, y, phi dimensions
-    integer, intent(in) :: imax, jmax, lmax
+    ! jmax, lmax, mmax - array size in z, theta, phi dimensions
+    integer, intent(in) :: jmax, lmax, mmax
+    ! vmax - size of VSF data array
+    integer, intent(in) :: vmax
     ! aa - absorption coefficient over space
     ! bb - scattering coefficient over space
-    double precision, dimension(imax,jmax), intent(in) :: aa, bb
+    double precision, dimension(jmax), intent(in) :: aa, bb
     ! beta - normalized volume scattering function evenly spaced array
     ! beta_1 = vsf(dphi); vsf(0) not meaningful
-    double precision, dimension(lmax-1), intent(in) :: beta
-    ! xmin, xmax, ymin, ymax - bounds for x and y dimensions respectively
-    double precision, intent(in) :: xmin, xmax, ymin, ymax
-    ! tol - error tolerance which determines when to stop iterating
+    double precision, dimension(vmax), intent(in) :: beta
+    ! zmin, zmax - bounds for z dimension
+    double precision, intent(in) :: zmin, zmax
+    ! tol - error tolerance which determines when to stop SOR iteration
     double precision, optional :: tol
     ! maxiter - maximum number of SOR iterations
     integer, optional :: maxiter
     ! omega - SOR weighting term. Should be between 1 and 2
     double precision, optional :: omega
 
-    ! Step size in each dimension
-    double precision dx, dy, dphi
+    ! Step size in z, theta, and phi dimensions
+    double precision dz, dtheta, dphi
 
     ! OUTPUTS:
     ! rad will be updated
@@ -117,16 +122,19 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
     ! Error (difference between iterations)
     double precision err
 
+    ! Angular variable bounds
+    double precision, parameter :: thetamin = 0.D0
+    double precision, parameter :: phimin = 0.D0
+    double precision, parameter :: thetamax = 2*pi
+    double precision, parameter :: phimax = pi
+
     ! Calculate step size
-    dx = (xmax - xmin) / imax
-    dy = (ymax - ymin) / jmax
-    dphi = 2 * pi / lmax
+    dz = (zmax - zmin) / imax
+    dtheta = (thetamax - thetamin) / lmax
+    dphi = (phimax - phimin) / mmax
 
     ! Calculate attenuation coefficient
     cc = aa + bb
-
-    write(*,*) 'CC'
-    call print_array(cc,imax,jmax,'F5.2')
 
     ! Assign optional parameters
     if(.not. present(tol)) then
@@ -156,25 +164,6 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
             ! Loop through jj
             ! Start at column 2 (depth layer 2) to accomodate BC
             do jj = 2, jmax
-
-                !------------------------!
-                ! Checkerboard loop over !
-                ! cells as follows:      !
-                !------------------------!
-                ! oddeven |  jj  |  ii   !
-                !------------------------!
-                !    1    | odd  | odd   !
-                !    1    | even | even  !
-                !    2    | odd  | even  !
-                !    2    | even | odd   !
-                !------------------------!
-
-                ! The following mod formula seems to be
-                ! the most straightforward way to
-                ! accomplish this
-
-                !!! Parallelize this loop !!!
-                do ii = mod(oddeven+jj,2)+1, imax, 2
 
                     write(*,'(A,I3,I3,I3)') 'LOC ', iter, ii, jj
 
