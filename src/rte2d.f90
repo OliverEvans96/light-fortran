@@ -1,7 +1,7 @@
 ! File Name: rte2d.f90
 ! Description: Subprograms specific to 2D RTE
 ! Created: Thu Jan 05, 2017 | 06:30pm EST
-! Last Modified: Sun Jan 29, 2017 | 05:35pm EST
+! Last Modified: Wed Mar 15, 2017 | 07:49am EDT
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-
 !                           GNU GPL LICENSE                            !
@@ -226,7 +226,8 @@ subroutine sor(rad, aa, bb, beta, imax, jmax, lmax, &
                         end do
 
                         ! Calculate Gauss-Seidel term
-                        gs_term = 1/cc(ii,jj) * (bb(ii,jj)*source - drdr)
+                        ! SCATTERING DISABLED
+                        gs_term = 1/cc(ii,jj) * (0*bb(ii,jj)*source - drdr)
 
                         ! Calculate SOR correction and update
                         tmp_rad = (1-omega) * rad(ii,jj,ll) &
